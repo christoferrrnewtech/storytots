@@ -23,13 +23,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   Future<List<Story>> _listAllStories() async {
-    // Supabase table 'stories' may be large; use pagination if necessary.
-    final rows = await _storiesRepo.supa
-        .from('stories')
-        .select('*')
-        .order('created_at', ascending: false);
-    final list = (rows as List?) ?? const [];
-    return list.map((e) => Story.fromMap(e as Map<String, dynamic>)).toList();
+    // Stories come from the bundled offline catalog.
+    return _storiesRepo.listAll();
   }
 
   Map<String, List<Story>> _groupByTopic(List<Story> stories) {

@@ -1,56 +1,26 @@
+import 'dart:io';
 import 'dart:typed_data';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:path_provider/path_provider.dart';
+
+/// Saves generated PDF progress reports to the device (offline).
+///
+/// Replaces the previous Supabase Storage upload + `notify_report` edge
+/// function. Sharing/sending is handled by the caller via `share_plus`.
 class ReportService {
-  final SupabaseClient _supa = Supabase.instance.client;
-
-  Future<String> uploadReportAndGetSignedUrl(
+  /// Write [bytes] to a PDF file in the app documents directory and return it.
+  Future<File> saveReport(
     Uint8List bytes, {
     String? suggestedName,
-    Duration validFor = const Duration(days: 7),
   }) async {
-    final user = _supa.auth.currentUser;
-    if (user == null) {
-      throw Exception('Not signed in');
-    }
-
+    final dir = await getApplicationDocumentsDirectory();
     final now = DateTime.now();
     final y = now.year.toString().padLeft(4, '0');
     final m = now.month.toString().padLeft(2, '0');
     final d = now.day.toString().padLeft(2, '0');
-    final base = suggestedName ?? 'StoryTots_Report_${y}-${m}-${d}.pdf';
-    final path = '${user.id}/$y/$m/$base';
-
-    // Upload (upsert so the latest replaces previous)
-    await _supa.storage
-        .from('reports')
-        .uploadBinary(
-          path,
-          bytes,
-          fileOptions: const FileOptions(
-            contentType: 'application/pdf',
-            upsert: true,
-          ),
-        );
-
-    // Signed URL
-    final url = await _supa.storage
-        .from('reports')
-        .createSignedUrl(path, validFor.inSeconds);
-    return url;
-  }
-
-  Future<void> notifyParents({
-    required String signedUrl,
-    required String childName,
-  }) async {
-    try {
-      await _supa.functions.invoke(
-        'notify_report',
-        body: {'url': signedUrl, 'childName': childName},
-      );
-    } catch (_) {
-      // Ignore notification errors on client; logging can be added later
-    }
+    final name = suggestedName ?? 'StoryTots_Report_$y-$m-$d.pdf';
+    final file = File('${dir.path}/$name');
+    await file.writeAsBytes(bytes, flush: true);
+    return file;
   }
 }

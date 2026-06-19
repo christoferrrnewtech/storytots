@@ -1,7 +1,7 @@
-import 'dart:convert';
-
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../local/app_database.dart';
+import '../local/session_service.dart';
 
 class LanguageStats {
   final int englishMinutes;
@@ -16,9 +16,10 @@ class LanguageStats {
   });
 }
 
+/// Tracks reading time per language. Fully offline: daily aggregates live in
+/// SharedPreferences (for fast UI) and each raw segment is also stored in the
+/// SQLite `reading_activity` table.
 class ReadingActivityRepository {
-  final supa = Supabase.instance.client;
-  static const _queueKey = 'reading_activity_queue';
   static const _aggPrefix = 'reading_minutes:'; // reading_minutes:YYYY-MM-DD:en
   static const int dailyGoalMinutes = 60; // can be adjusted later
   static const _lastSessionKey = 'reading_last_session_at';
@@ -42,34 +43,31 @@ class ReadingActivityRepository {
     final seconds = duration.inSeconds;
     if (seconds <= 0) return;
 
-    // Queue for server sync
-    final prefs = await _prefs;
-    final raw = prefs.getString(_queueKey);
-    final list = raw == null
-        ? <Map<String, dynamic>>[]
-        : List<Map<String, dynamic>>.from(json.decode(raw));
-
     final now = DateTime.now();
-    final item = {
-      'user_id': supa.auth.currentUser?.id,
+    final day = _dayKey(now);
+    final start = (startedAt ?? now.subtract(duration)).toIso8601String();
+    final end = (endedAt ?? now).toIso8601String();
+
+    // Persist raw segment to SQLite.
+    final db = await AppDatabase.instance.db;
+    await db.insert('reading_activity', {
+      'user_id': SessionService.instance.currentUserId,
       'story_id': storyId,
       'language': language,
       'duration_sec': seconds,
-      'started_at': (startedAt ?? now.subtract(duration)).toIso8601String(),
-      'ended_at': (endedAt ?? now).toIso8601String(),
-      'day': _dayKey(now),
-    };
-    list.add(item);
-    await prefs.setString(_queueKey, json.encode(list));
+      'started_at': start,
+      'ended_at': end,
+      'day': day,
+    });
 
-    // Update local daily aggregates for quick UI
-    final day = _dayKey(now);
+    // Update local daily aggregates for quick UI.
+    final prefs = await _prefs;
     final aggKey = '$_aggPrefix$day:$language';
     final current = prefs.getInt(aggKey) ?? 0;
     await prefs.setInt(aggKey, current + seconds);
 
-    // Record last session end time for Profile metrics
-    await prefs.setString(_lastSessionKey, item['ended_at'] as String);
+    // Record last session end time for Profile metrics.
+    await prefs.setString(_lastSessionKey, end);
   }
 
   Future<LanguageStats> getTodayLanguageStats() async {
@@ -90,36 +88,6 @@ class ReadingActivityRepository {
     );
   }
 
-  Future<void> flushQueue() async {
-    final prefs = await _prefs;
-    final raw = prefs.getString(_queueKey);
-    if (raw == null) return;
-
-    List list;
-    try {
-      list = json.decode(raw) as List;
-    } catch (_) {
-      return;
-    }
-    if (list.isEmpty) return;
-
-    final remaining = <Map<String, dynamic>>[];
-    for (final e in list) {
-      final item = (e as Map).cast<String, dynamic>();
-      try {
-        // Skip if not current user
-        final uid = supa.auth.currentUser?.id;
-        if (uid == null || item['user_id'] != uid) {
-          remaining.add(item);
-          continue;
-        }
-        // Best-effort insert (table: reading_activity). If table doesn't exist, ignore.
-        await supa.from('reading_activity').insert(item);
-      } catch (_) {
-        remaining.add(item);
-      }
-    }
-
-    await prefs.setString(_queueKey, json.encode(remaining));
-  }
+  /// No server in offline mode — kept for call-site compatibility.
+  Future<void> flushQueue() async {}
 }

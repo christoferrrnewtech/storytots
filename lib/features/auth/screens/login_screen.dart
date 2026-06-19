@@ -1,9 +1,8 @@
 // lib/features/auth/screens/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants.dart';
 import '../../../../data/repositories/profile_repository.dart';
-import '../../../../data/repositories/auth_cache_repository.dart';
+import '../../../../data/repositories/auth_repository.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,7 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  final _authCache = AuthCacheRepository();
+  final _auth = AuthRepository();
 
   bool _loading = false;
   bool _obscure = true;
@@ -53,14 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: _email.text.trim(),
-        password: _password.text,
-      );
-
-      // Cache the session for persistent login
-      await _authCache.cacheCurrentSession();
-
+      await _auth.signIn(_email.text.trim(), _password.text);
       await _routeAfterAuth();
     } on AuthException catch (e) {
       _toast(e.message);
@@ -206,25 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
 
-                                // Forgot Password
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: _loading
-                                        ? null
-                                        : () => Navigator.pushNamed(
-                                            context,
-                                            '/forgot-password',
-                                          ),
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.only(top: 8),
-                                    ),
-                                    child: const Text(
-                                      'Forgot Password',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ),
+                                const SizedBox(height: 8),
                               ],
                             ),
                           ),

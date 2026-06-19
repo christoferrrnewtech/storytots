@@ -1,9 +1,8 @@
 // lib/features/auth/screens/sign_up_screen.dart
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants.dart';
 import '../../../../core/widgets/st_text_field.dart';
-import 'otp_verify_screen.dart';
+import '../../../../data/repositories/auth_repository.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -163,25 +162,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     setState(() => _loading = true);
     try {
-      // Send OTP; set password after verification.
-      await Supabase.instance.client.auth.signInWithOtp(
+      // Create the local account directly — no email/OTP verification offline.
+      await AuthRepository().signUp(
         email: _email.text.trim(),
-        shouldCreateUser: true,
+        password: _password.text,
+        firstName: _first.text.trim(),
+        lastName: _last.text.trim(),
+        birthDate: birth,
       );
 
       if (!mounted) return;
 
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => OtpVerifyScreen(
-            email: _email.text.trim(),
-            firstName: _first.text.trim(),
-            lastName:  _last.text.trim(),
-            birthDate: _birth.text.trim(),
-            password:  _password.text,
-          ),
-        ),
-      );
+      // Brand-new accounts are not yet onboarded — go straight to onboarding.
+      Navigator.pushNamedAndRemoveUntil(context, '/onboarding', (_) => false);
     } on AuthException catch (e) {
       _toast(e.message);
     } catch (e) {
@@ -422,7 +415,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                         elevation: 8,
                       ),
-                      child: Text(_loading ? 'Sending code…' : 'Continue'),
+                      child: Text(_loading ? 'Creating account…' : 'Continue'),
                     ),
                   ),
                   TextButton(

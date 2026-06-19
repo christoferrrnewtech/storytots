@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:storytots/data/repositories/auth_cache_repository.dart';
+import 'package:storytots/data/repositories/auth_repository.dart';
 import 'package:storytots/core/constants.dart';
 import 'package:storytots/features/settings/screens/profile_screen.dart';
 import 'about_screen.dart';
@@ -165,9 +164,7 @@ class SettingsScreen extends StatelessWidget {
 
   Future<void> _logout(BuildContext context) async {
     try {
-      final authCache = AuthCacheRepository();
-      await authCache.clearCache();
-      await Supabase.instance.client.auth.signOut();
+      await AuthRepository().signOut();
 
       if (context.mounted) {
         Navigator.of(

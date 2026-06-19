@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants.dart';
-import '../../../data/repositories/auth_cache_repository.dart';
+import '../../../data/local/session_service.dart';
 import '../../../data/repositories/profile_repository.dart';
 
 class AuthSplashScreen extends StatefulWidget {
@@ -12,8 +11,6 @@ class AuthSplashScreen extends StatefulWidget {
 }
 
 class _AuthSplashScreenState extends State<AuthSplashScreen> {
-  final _authCache = AuthCacheRepository();
-
   @override
   void initState() {
     super.initState();
@@ -27,27 +24,8 @@ class _AuthSplashScreenState extends State<AuthSplashScreen> {
     if (!mounted) return;
 
     try {
-      // 1) Enforce daily login: if cache not for today, sign out and go to login
-      final validToday = await _authCache.hasValidCachedSession();
-      if (!validToday) {
-        await Supabase.instance.client.auth.signOut();
-        _navigateToLogin();
-        return;
-      }
-
-      // 2) Check current session/user
-      final auth = Supabase.instance.client.auth;
-      var user = auth.currentUser;
-
-      // 3) If user still null, attempt restore from our cached refresh_token
-      if (user == null) {
-        final restored = await _authCache.restoreSession();
-        if (restored) {
-          user = auth.currentUser;
-        }
-      }
-
-      if (user != null) {
+      // Logged-in state persists locally (no server / no daily expiry).
+      if (SessionService.instance.isLoggedIn) {
         await _routeToAppropriateScreen();
       } else {
         _navigateToLogin();

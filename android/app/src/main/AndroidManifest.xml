@@ -1,12 +1,10 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.storytots">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 🎤 mic permission -->
-        <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 🎤 mic permission for speech-to-text reading -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
-        android:label="storytots"
+        android:label="StoryTots"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
@@ -29,16 +27,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-
-            <!-- ✅ Deep link for Supabase (OTP/email link flow if you ever need it again) -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data
-                    android:scheme="com.example.storytots"
-                    android:host="login-callback" />
             </intent-filter>
         </activity>
 

@@ -12,6 +12,7 @@ import '../../core/constants.dart';
 import 'karaoke_text.dart';
 import 'speech/engine.dart';
 import 'speech/speech_service_factory.dart';
+import '../../data/local/session_service.dart';
 import '../../data/repositories/library_repository.dart';
 import '../../data/repositories/progress_repository.dart';
 import '../../data/repositories/assessment_repository.dart';
@@ -965,10 +966,10 @@ class _ReadingPageV3State extends State<ReadingPageV3> {
   Future<void> _saveProgress({required bool isCompleted}) async {
     if (widget.storyId == null) return;
     try {
-      final user = _progressRepo.supa.auth.currentUser;
-      if (user == null) return;
+      final userId = SessionService.instance.currentUserId;
+      if (userId == null) return;
       final p = Progress(
-        userId: user.id,
+        userId: userId,
         storyId: widget.storyId!,
         pageId: null,
         sentenceIndex: _currentSentence,

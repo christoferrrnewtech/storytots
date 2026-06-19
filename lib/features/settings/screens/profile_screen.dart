@@ -1,12 +1,11 @@
 // lib/features/settings/screens/profile_screen.dart
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:storytots/core/constants.dart';
+import 'package:storytots/data/repositories/profile_repository.dart';
+import 'package:storytots/data/supabase/tables/profile.dart';
 import 'package:storytots/data/repositories/reading_activity_repository.dart';
 import 'package:storytots/data/services/profile_stats_service.dart';
 import 'edit_profile_screen.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
@@ -37,30 +36,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<_ProfileData> _loadProfile() async {
-    final client = Supabase.instance.client;
-    final user = client.auth.currentUser;
-    if (user == null) throw Exception('Not signed in');
+    final row = await ProfileRepository().getMyProfileRaw();
+    if (row == null) throw Exception('Not signed in');
 
-    final Map<String, dynamic>? row = await client
-        .from('profiles')
-        .select(
-          'email, first_name, last_name, birth_date, avatar_key, interests',
-        )
-        .eq('id', user.id)
-        .maybeSingle();
-
-    final birthday = _parseDate(row?['birth_date']);
+    final birthday = _parseDate(row['birth_date']);
     final age = birthday == null ? '—' : _ageFrom(birthday).toString();
+    final email = (row['email'] as String?) ?? '';
 
     return _ProfileData(
-      displayName: _nameFrom(row, user.email),
-      email: (row?['email'] as String?) ?? (user.email ?? ''),
+      displayName: _nameFrom(row, email),
+      email: email,
       birthday: birthday,
       ageLabel: age,
-      avatarAsset: _avatarAssetFromKey(row?['avatar_key'] as String?),
-      interests: (row?['interests'] is List)
-          ? List<String>.from(row?['interests'] as List)
-          : const <String>[],
+      avatarAsset: _avatarAssetFromKey(row['avatar_key'] as String?),
+      interests: Profile.fromMap(row).interests ?? const <String>[],
     );
   }
 
@@ -71,8 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadStats() async {
-    // Ensure any queued offline activity is synced to Supabase first
-    await _activityRepo.flushQueue();
     final s = await ProfileStatsService().getStatsDbFirst();
     if (!mounted) return;
     setState(() => _stats = s);
@@ -209,23 +196,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final bytes = await doc.save();
 
-      // Upload to Supabase Storage and get a signed URL
-      final signer = ReportService();
-      final signedUrl = await signer.uploadReportAndGetSignedUrl(
+      // Save the report locally and open the share sheet (fully offline).
+      final file = await ReportService().saveReport(
         bytes,
-        suggestedName: 'StoryTots_Report_${dateStr}.pdf',
+        suggestedName: 'StoryTots_Report_$dateStr.pdf',
       );
-
-      // Fire push notification via Edge Function (non-blocking)
-      await signer.notifyParents(
-        signedUrl: signedUrl,
-        childName: profile.displayName,
-      );
-
-      // Also save locally and open share sheet (kept from previous behavior)
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/StoryTots_Report_$dateStr.pdf');
-      await file.writeAsBytes(bytes, flush: true);
 
       await Share.shareXFiles(
         [
@@ -236,15 +211,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
         subject: 'StoryTots Progress Report',
-        text:
-            'StoryTots Progress Report for ${profile.displayName}\nDownload link: $signedUrl',
+        text: 'StoryTots Progress Report for ${profile.displayName}',
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Report uploaded and notifications sent.'),
-          ),
+          const SnackBar(content: Text('Report saved and ready to share.')),
         );
       }
     } catch (e) {

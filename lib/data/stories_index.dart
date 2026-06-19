@@ -8,6 +8,11 @@ class StoryIndexItem {
   final String page1Path;
   final String? coverAsset; // optional
 
+  /// Interest topics this story belongs to. Values must match the onboarding
+  /// topic labels in `onboarding_flow.dart` so Home's interest rows work
+  /// offline (e.g. 'Nature & Animals', 'Fantasy', 'Fun & Adventure').
+  final List<String> topics;
+
   const StoryIndexItem({
     required this.slug,
     required this.title,
@@ -16,6 +21,7 @@ class StoryIndexItem {
     required this.synopsisPath,
     required this.page1Path,
     this.coverAsset,
+    this.topics = const [],
   });
 }
 
@@ -30,6 +36,7 @@ class StoriesIndex {
       synopsisPath: 'assets/stories/the-monkey-and-the-turtle/en/synopsis.txt',
       page1Path: 'assets/stories/the-monkey-and-the-turtle/en/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Monkey_and_the_Turtle.png',
+      topics: ['Nature & Animals', 'Fun & Adventure', 'P.E. & Health'],
     ),
     StoryIndexItem(
       slug: 'the-monkey-and-the-turtle',
@@ -39,6 +46,7 @@ class StoriesIndex {
       synopsisPath: 'assets/stories/the-monkey-and-the-turtle/tl/synopsis.txt',
       page1Path: 'assets/stories/the-monkey-and-the-turtle/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Monkey_and_the_Turtle.png',
+      topics: ['Nature & Animals', 'Fun & Adventure', 'P.E. & Health'],
     ),
 
     // Alamat ng Saging / Legend of the Banana (Tagalog + English)
@@ -50,6 +58,7 @@ class StoriesIndex {
       synopsisPath: 'assets/stories/alamat-ng-saging/tl/synopsis.txt',
       page1Path: 'assets/stories/alamat-ng-saging/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/Alamat_ng_Saging.jpg',
+      topics: ['Nature & Animals', 'Fantasy', 'Family & Friends'],
     ),
     StoryIndexItem(
       slug: 'alamat-ng-saging',
@@ -59,6 +68,7 @@ class StoriesIndex {
       synopsisPath: 'assets/stories/alamat-ng-saging/en/synopsis.txt',
       page1Path: 'assets/stories/alamat-ng-saging/en/pages/001.txt',
       coverAsset: 'assets/images/covers/Alamat_ng_Saging.jpg',
+      topics: ['Nature & Animals', 'Fantasy', 'Family & Friends'],
     ),
 
     // Alamat ng Sampaguita / Legend of the Sampaguita (Tagalog + English)
@@ -70,6 +80,7 @@ class StoriesIndex {
       synopsisPath: 'assets/stories/alamat-ng-sampaguita/tl/synopsis.txt',
       page1Path: 'assets/stories/alamat-ng-sampaguita/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/Alamat_ng_Sampaguita.jpg',
+      topics: ['Nature & Animals', 'Fantasy', 'Arts'],
     ),
     StoryIndexItem(
       slug: 'alamat-ng-sampaguita',
@@ -79,6 +90,7 @@ class StoriesIndex {
       synopsisPath: 'assets/stories/alamat-ng-sampaguita/en/synopsis.txt',
       page1Path: 'assets/stories/alamat-ng-sampaguita/en/pages/001.txt',
       coverAsset: 'assets/images/covers/Alamat_ng_Sampaguita.jpg',
+      topics: ['Nature & Animals', 'Fantasy', 'Arts'],
     ),
 
     // The Legend of the Bitter Gourd / Alamat ng Ampalaya (English + Tagalog)
@@ -92,6 +104,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Legend_of_the_Bitter_Gourd/en/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Legend_of_the_Bitter_Gourd.jpg',
+      topics: ['Nature & Animals', 'Fantasy'],
     ),
     StoryIndexItem(
       slug: 'the-legend-of-the-bitter-gourd',
@@ -103,6 +116,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Legend_of_the_Bitter_Gourd/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Legend_of_the_Bitter_Gourd.jpg',
+      topics: ['Nature & Animals', 'Fantasy'],
     ),
 
     // The Legend of the Rainbow (English + Tagalog)
@@ -116,6 +130,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Legend_of_the_Rainbow/en/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Legend_of_the_Rainbow.jpeg',
+      topics: ['Fantasy', 'Arts', 'Nature & Animals'],
     ),
     StoryIndexItem(
       slug: 'the-legend-of-the-rainbow',
@@ -127,6 +142,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Legend_of_the_Rainbow/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Legend_of_the_Rainbow.jpeg',
+      topics: ['Fantasy', 'Arts', 'Nature & Animals'],
     ),
 
     // The Lion and the Mouse (English + Tagalog)
@@ -140,6 +156,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Lion_and_the_Mouse/en/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Lion_and_the_Mouse.webp',
+      topics: ['Nature & Animals', 'Family & Friends', 'Fun & Adventure'],
     ),
     StoryIndexItem(
       slug: 'the-lion-and-the-mouse',
@@ -151,6 +168,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Lion_and_the_Mouse/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Lion_and_the_Mouse.webp',
+      topics: ['Nature & Animals', 'Family & Friends', 'Fun & Adventure'],
     ),
 
     // The Ant and the Grasshopper (English + Tagalog)
@@ -164,6 +182,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Ant_and_the_Grasshopper/en/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Ant_and_the_Grasshopper.jpg',
+      topics: ['Nature & Animals', 'P.E. & Health', 'Family & Friends'],
     ),
     StoryIndexItem(
       slug: 'the-ant-and-the-grasshopper',
@@ -175,6 +194,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Ant_and_the_Grasshopper/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Ant_and_the_Grasshopper.jpg',
+      topics: ['Nature & Animals', 'P.E. & Health', 'Family & Friends'],
     ),
 
     // Why the Ocean Is Salty (English + Tagalog)
@@ -188,6 +208,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/Why_the_Ocean_Is_Salty/en/pages/001.txt',
       coverAsset: 'assets/images/covers/Why_the_Sea_Is_Salty.jpg',
+      topics: ['Nature & Animals', 'Fantasy', 'Fun & Adventure'],
     ),
     StoryIndexItem(
       slug: 'why-the-ocean-is-salty',
@@ -199,6 +220,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/Why_the_Ocean_Is_Salty/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/Why_the_Sea_Is_Salty.jpg',
+      topics: ['Nature & Animals', 'Fantasy', 'Fun & Adventure'],
     ),
 
     // Why the Sky Is High (English + Tagalog)
@@ -212,6 +234,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/Why_the_Sky_Is_High/en/pages/001.txt',
       coverAsset: 'assets/images/covers/Why_the_Sky_Is_High.jpg',
+      topics: ['Fantasy', 'Nature & Animals', 'Fun & Adventure'],
     ),
     StoryIndexItem(
       slug: 'why-the-sky-is-high',
@@ -223,6 +246,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/Why_the_Sky_Is_High/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/Why_the_Sky_Is_High.jpg',
+      topics: ['Fantasy', 'Nature & Animals', 'Fun & Adventure'],
     ),
 
     // The Carabao and the Shell (English + Tagalog)
@@ -236,6 +260,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Carabao_and_the_Shell/en/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Carabao_and_the_Shell.jpg',
+      topics: ['Nature & Animals', 'Fun & Adventure', 'P.E. & Health'],
     ),
     StoryIndexItem(
       slug: 'the-carabao-and-the-shell',
@@ -247,6 +272,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/The_Carabao_and_the_Shell/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Carabao_and_the_Shell.jpg',
+      topics: ['Nature & Animals', 'Fun & Adventure', 'P.E. & Health'],
     ),
 
     // Stories of Juan Tamad (English + Tagalog)
@@ -260,6 +286,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/Stories_of_Juan_Tamad/en/pages/001.txt',
       coverAsset: 'assets/images/covers/Stories_of_Juan_Tamad.jpeg',
+      topics: ['Fun & Adventure', 'Family & Friends', 'Arts'],
     ),
     StoryIndexItem(
       slug: 'stories-of-juan-tamad',
@@ -271,6 +298,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/Stories_of_Juan_Tamad/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/Stories_of_Juan_Tamad.jpeg',
+      topics: ['Fun & Adventure', 'Family & Friends', 'Arts'],
     ),
 
     // Legend of the Pineapple (English + Tagalog)
@@ -284,6 +312,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/Legend_of_the_PineApple/en/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Legend_of_the_Pineapple.jpg',
+      topics: ['Nature & Animals', 'Fantasy', 'Family & Friends'],
     ),
     StoryIndexItem(
       slug: 'legend-of-the-pineapple',
@@ -295,6 +324,7 @@ class StoriesIndex {
       page1Path:
           'assets/stories/_normalized_stories/Legend_of_the_PineApple/tl/pages/001.txt',
       coverAsset: 'assets/images/covers/The_Legend_of_the_Pineapple.jpg',
+      topics: ['Nature & Animals', 'Fantasy', 'Family & Friends'],
     ),
   ];
 }

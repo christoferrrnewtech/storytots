@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants.dart';
+import '../../../data/repositories/profile_repository.dart';
 import '../../../data/repositories/stories_repository.dart';
 import '../../reader/story_details_screen.dart';
 import '../../reader/reading_page_v3.dart';
@@ -17,28 +17,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _storiesRepo = StoriesRepository();
+  final _profileRepo = ProfileRepository();
 
   Future<Map<String, dynamic>?> _loadProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return null;
+    final profile = await _profileRepo.getMyProfile();
+    if (profile == null) return null;
 
-    final row = await Supabase.instance.client
-        .from('profiles')
-        .select('interests, avatar_key')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    if (row == null) return null;
-
-    final interests = <String>[];
-    final raw = row['interests'];
-    if (raw is List) {
-      for (final v in raw) {
-        if (v is String) interests.add(v);
-      }
-    }
-
-    final avatarKey = row['avatar_key'] as String?;
+    final interests = profile.interests ?? const <String>[];
+    final avatarKey = profile.avatarKey;
+    // Seed the avatar notifier so the AppBar shows the saved avatar.
+    ProfileRepository.avatarNotifier.value = avatarKey;
     return {
       'interests': interests,
       'avatarPath': _avatarAssetFromKey(avatarKey),
@@ -103,22 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Live stream of the current user's avatar key so the UI updates immediately
-  Stream<String?> _avatarKeyStream() {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      return const Stream<String?>.empty();
-    }
-    return Supabase.instance.client
-        .from('profiles')
-        .stream(primaryKey: ['id'])
-        .eq('id', user.id)
-        .map(
-          (rows) =>
-              rows.isNotEmpty ? (rows.first['avatar_key'] as String?) : null,
-        );
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>?>(
@@ -156,10 +128,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 actions: [
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: StreamBuilder<String?>(
-                      stream: _avatarKeyStream(),
-                      builder: (context, avatarSnap) {
-                        final key = avatarSnap.data;
+                    child: ValueListenableBuilder<String?>(
+                      valueListenable: ProfileRepository.avatarNotifier,
+                      builder: (context, key, _) {
                         final dynamicPath = key != null
                             ? _avatarAssetFromKey(key)
                             : avatarPath;

@@ -1,4 +1,9 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:sqflite/sqflite.dart';
+
+import '../local/app_database.dart';
+import '../local/session_service.dart';
+import '../stories_index.dart';
 
 class Story {
   final String id;
@@ -45,77 +50,116 @@ class Story {
   factory Story.fromJson(Map<String, dynamic> json) => Story.fromMap(json);
 }
 
+/// Offline story catalog. The catalog itself comes from the bundled
+/// [StoriesIndex] (asset files); only the per-user `reading_history` lives in
+/// SQLite. `Story.id` is the story `slug`.
 class StoriesRepository {
-  final supa = Supabase.instance.client;
+  Future<Database> get _db async => AppDatabase.instance.db;
+
+  /// Canonical (English-preferred) index entry per slug.
+  StoryIndexItem? _canonicalForSlug(String slug) {
+    StoryIndexItem? fallback;
+    for (final item in StoriesIndex.items) {
+      if (item.slug == slug) {
+        if (item.language == 'en') return item;
+        fallback ??= item;
+      }
+    }
+    return fallback;
+  }
+
+  Iterable<StoryIndexItem> _canonicalItems() {
+    final seen = <String>{};
+    final out = <StoryIndexItem>[];
+    for (final item in StoriesIndex.items) {
+      if (seen.add(item.slug)) {
+        out.add(_canonicalForSlug(item.slug) ?? item);
+      }
+    }
+    return out;
+  }
+
+  Story _storyFromItem(StoryIndexItem item, {String? synopsis}) {
+    return Story(
+      id: item.slug,
+      title: item.title,
+      language: item.language,
+      topics: item.topics,
+      coverUrl: item.coverAsset,
+      synopsis: synopsis,
+    );
+  }
+
+  Future<String?> _loadSynopsis(StoryIndexItem item) async {
+    try {
+      return await rootBundle.loadString(item.synopsisPath);
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<List<Story>> listByTopic(String topic, {int limit = 6}) async {
-    final rows = await supa
-        .from('stories')
-        .select('*')
-        .contains('topics', [topic]) // text[] contains "topic"
-        .order('created_at', ascending: false)
-        .limit(limit);
-
-    final list = (rows as List?) ?? const [];
-    return list.map((e) => Story.fromMap(e as Map<String, dynamic>)).toList();
+    final matches = _canonicalItems()
+        .where((i) => i.topics.contains(topic))
+        .take(limit)
+        .map((i) => _storyFromItem(i))
+        .toList();
+    return matches;
   }
 
   Future<Story?> getById(String id) async {
-    final row = await supa
-        .from('stories')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-    if (row == null) return null;
-    return Story.fromMap(row);
+    final item = _canonicalForSlug(id);
+    if (item == null) return null;
+    final synopsis = await _loadSynopsis(item);
+    return _storyFromItem(item, synopsis: synopsis);
   }
 
   /// Returns stories the user has opened, oldest -> newest (FIFO).
-  /// Requires a FK reading_history.story_id -> stories.id in your DB.
-  ///
-  /// reading_history fields expected:
-  /// - user_id (uuid)
-  /// - story_id (uuid/text)
-  /// - last_read_at (timestamp)
   Future<List<Story>> listReadingHistory({int limit = 6}) async {
-    final user = supa.auth.currentUser;
-    if (user == null) return [];
+    final uid = SessionService.instance.currentUserId;
+    if (uid == null) return [];
 
-    // If FK is set, Supabase can join via select('story:stories(*)')
-    final rows = await supa
-        .from('reading_history')
-        .select('story:stories(*), last_read_at')
-        .eq('user_id', user.id)
-        .order('last_read_at', ascending: true) // FIFO
-        .limit(limit);
+    final db = await _db;
+    final rows = await db.query(
+      'reading_history',
+      where: 'user_id = ?',
+      whereArgs: [uid],
+      orderBy: 'last_read_at ASC',
+      limit: limit,
+    );
 
-    final list = (rows as List?) ?? const [];
-    return list
-        .map((row) => (row as Map<String, dynamic>)['story'])
-        .where((s) => s != null)
-        .map<Story>((s) => Story.fromMap(s as Map<String, dynamic>))
-        .toList();
+    final stories = <Story>[];
+    for (final r in rows) {
+      final item = _canonicalForSlug(r['story_id'] as String);
+      if (item != null) stories.add(_storyFromItem(item));
+    }
+    return stories;
   }
 
-  /// Optional helper to upsert progress whenever a story is opened.
+  /// Record/refresh that a story was opened.
   Future<void> touchReadingHistory(String storyId) async {
-    final user = supa.auth.currentUser;
-    if (user == null) return;
-    await supa.from('reading_history').upsert({
-      'user_id': user.id,
+    final uid = SessionService.instance.currentUserId;
+    if (uid == null) return;
+    final db = await _db;
+    await db.insert('reading_history', {
+      'user_id': uid,
       'story_id': storyId,
       'last_read_at': DateTime.now().toIso8601String(),
-    }, onConflict: 'user_id,story_id');
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  /// All stories in the bundled catalog (one entry per slug).
+  Future<List<Story>> listAll() async {
+    return _canonicalItems().map((i) => _storyFromItem(i)).toList();
   }
 
   Future<List<Story>> listByIds(List<String> ids) async {
     if (ids.isEmpty) return [];
-    final rows = await supa
-        .from('stories')
-        .select('*')
-        .filter('id', 'in', '(${ids.map((e) => '"$e"').join(',')})');
-    final list = (rows as List?) ?? const [];
-    return list.map((e) => Story.fromMap(e as Map<String, dynamic>)).toList();
+    final out = <Story>[];
+    for (final id in ids) {
+      final item = _canonicalForSlug(id);
+      if (item != null) out.add(_storyFromItem(item));
+    }
+    return out;
   }
 }
